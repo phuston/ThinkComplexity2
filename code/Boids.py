@@ -14,6 +14,7 @@ Distributed under the GNU General Public License at gnu.org/licenses/gpl.html.
 
 import visual
 import numpy as np
+import random
 
 # size of the boids
 b_radius = 0.03
@@ -34,6 +35,7 @@ w_avoid = 4
 w_center = 3
 w_copy = 2
 w_love = 10
+w_sight = 10
 
 # time step
 dt = 0.1
@@ -83,6 +85,23 @@ class Boid(visual.cone):
             boids.append(other)
             
         return boids
+
+    def line_of_sight(self, others):
+    	sightDisrupted = False
+    	for other in others:
+    		if other is self: continue
+    		offset = other.pos - self.pos
+    		if self.vel.diff_angle(offset) < np.radians(4):
+    			sightDisrupted = True
+    			break
+
+    	if sightDisrupted:
+    		axes = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    		angles = [np.pi/2, -np.pi/2]
+    		heading = self.vel.rotate(angle=random.choice(angles), axis=random.choice(axes))
+    		return heading
+    	else: 
+    		return null_vector
 
     def avoid(self, others, carrot):
         """Find the center of mass of all objects in range and
@@ -136,7 +155,8 @@ class Boid(visual.cone):
         self.goal = (w_avoid * self.avoid(boids, carrot) + 
                      w_center * self.center(boids) +
                      w_copy * self.copy(boids) + 
-                     w_love * self.love(carrot))
+                     w_love * self.love(carrot) +
+                     w_sight * self.line_of_sight(boids))
         self.goal.mag = 1
         
     def move(self, mu=0.1):
